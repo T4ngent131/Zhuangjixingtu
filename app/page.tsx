@@ -1,29 +1,918 @@
 "use client";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-type Part={id:string;type:string;name:string;price:number;meta:string;socket?:string;ram?:string;tdp?:number;watt?:number;length?:number;height?:number;gpuMax?:number;coolerMax?:number};
-type Build=Record<string,Part|null>; type Post={id:number;title:string;author:string;note:string;image:string;likes:number;tags:string[];cost:number};
-const types=["CPU","主板","显卡","内存","硬盘","散热器","电源","机箱"];
-const catalog:Record<string,Part[]>={
-CPU:[{id:"c1",type:"CPU",name:"Ryzen 5 7600X",price:1399,meta:"6 核 12 线程 · AM5",socket:"AM5",tdp:105},{id:"c2",type:"CPU",name:"Ryzen 7 9700X",price:2399,meta:"8 核 16 线程 · AM5",socket:"AM5",tdp:120},{id:"c3",type:"CPU",name:"Core i5-14600KF",price:1799,meta:"14 核 20 线程 · LGA1700",socket:"LGA1700",tdp:181}],
-主板:[{id:"m1",type:"主板",name:"B650M MORTAR WIFI",price:1299,meta:"AM5 · DDR5 · M-ATX",socket:"AM5",ram:"DDR5"},{id:"m2",type:"主板",name:"B760M AORUS ELITE",price:1099,meta:"LGA1700 · DDR5 · M-ATX",socket:"LGA1700",ram:"DDR5"},{id:"m3",type:"主板",name:"B550M MORTAR",price:799,meta:"AM4 · DDR4 · M-ATX",socket:"AM4",ram:"DDR4"}],
-显卡:[{id:"g1",type:"显卡",name:"RTX 4070 SUPER 12G",price:4599,meta:"330 mm · 峰值 285W",tdp:285,length:330},{id:"g2",type:"显卡",name:"RX 7800 XT 16G",price:3899,meta:"320 mm · 峰值 300W",tdp:300,length:320},{id:"g3",type:"显卡",name:"RTX 4060 Ti 16G",price:3299,meta:"250 mm · 峰值 190W",tdp:190,length:250}],
-内存:[{id:"r1",type:"内存",name:"Kingston FURY DDR5 6000 32GB",price:699,meta:"CL30 · 双通道 · AMD EXPO",ram:"DDR5"},{id:"r2",type:"内存",name:"芝奇 幻锋戟 DDR5 7200 32GB",price:899,meta:"CL34 · 双通道 · XMP",ram:"DDR5"},{id:"r3",type:"内存",name:"金百达 DDR4 3600 32GB",price:449,meta:"CL18 · 双通道",ram:"DDR4"}],
-硬盘:[{id:"s1",type:"硬盘",name:"Samsung 990 PRO 2TB",price:1099,meta:"PCIe 4.0 · 读速 7450MB/s"},{id:"s2",type:"硬盘",name:"致态 TiPlus 7100 1TB",price:449,meta:"PCIe 4.0 · 读速 7000MB/s"}],
-散热器:[{id:"f1",type:"散热器",name:"Thermalright PA120 SE",price:219,meta:"双塔风冷 · 高 155mm",height:155},{id:"f2",type:"散热器",name:"瓦尔基里 A360 ARGB",price:699,meta:"360 冷排 · 高性能",height:60},{id:"f3",type:"散热器",name:"Noctua NH-D15S",price:699,meta:"双塔风冷 · 高 160mm",height:160}],
-电源:[{id:"p1",type:"电源",name:"Corsair RM750e 750W",price:699,meta:"金牌全模组 · ATX 3.0",watt:750},{id:"p2",type:"电源",name:"航嘉 WD650K 650W",price:399,meta:"金牌 · ATX 2.4",watt:650},{id:"p3",type:"电源",name:"海韵 FOCUS GX850",price:899,meta:"金牌全模组 · 十年质保",watt:850}],
-机箱:[{id:"b1",type:"机箱",name:"乔思伯 TK-2 纯白",price:599,meta:"海景房 · 显卡 340mm · 风冷 160mm",gpuMax:340,coolerMax:160},{id:"b2",type:"机箱",name:"闪鳞 S400 ITX",price:699,meta:"紧凑便携 · 显卡 305mm",gpuMax:305,coolerMax:135},{id:"b3",type:"机箱",name:"Fractal Design North",price:999,meta:"胡桃木前脸 · 显卡 355mm",gpuMax:355,coolerMax:170}]};
-const preset:Build={CPU:catalog.CPU[0],主板:catalog.主板[0],显卡:catalog.显卡[0],内存:catalog.内存[0],硬盘:catalog.硬盘[0],散热器:catalog.散热器[0],电源:catalog.电源[0],机箱:catalog.机箱[0]};
-const samples:Post[]=[{id:1,title:"白色海景房一次点亮",author:"光追小队长",note:"第一次装机，理线比想象中更解压。2K 光追很稳，温度也漂亮。",image:"/community-builds.png",likes:128,tags:["纯白","海景房","2K游戏"],cost:9399},{id:2,title:"12L 小钢炮工作台",author:"像素旅人",note:"塞进背包也能带走的生产力主机，风道调了三次终于满意。",image:"/community-builds.png",likes:86,tags:["ITX","静音","生产力"],cost:7899},{id:3,title:"银色无光工作站",author:"北桥",note:"不追 RGB，只看稳定与扩展。剪辑和本地模型都够用。",image:"/community-builds.png",likes:64,tags:["工作站","无光","高扩展"],cost:12680}];
-const productImages:Record<string,string>={CPU:"https://images.tcdn.com.br/img/img_prod/833676/processador_am5_ryzen_5_7600x_oem_6603_5_c1aa12fde79dbaab3b928fb59d0b2dcf.jpg",主板:"https://media.ldlc.com/r1600/ld/products/00/05/98/49/LD0005984921.jpg",显卡:"/community-builds.png",内存:"https://pcbuild.bg/assets/products/000/000/320/000000320296--pamet-kingston-fury-beast-black-32gb-ddr5-6400mhz-cl32-xmp-kf564c32bb-32.jpg",硬盘:"https://product.hstatic.net/200000420363/product/samsung-990-pro-nvme-m.2-2tb-_mz-v9p2t0bw_-7_b4eb649f3dae4b3e9419e51f02d934dd_grande.png",散热器:"https://m.media-amazon.com/images/S/aplus-media-library-service-media/c4208f4a-8094-49c4-bd7b-8238816eaade.__CR0%2C0%2C970%2C600_PT0_SX970_V1___.jpg",电源:"https://swapnainfotech.com/cdn/shop/files/CP-9020262-IN-removebg-preview.png?v=1734967422",机箱:"https://www.fractal-design.com/app/uploads/2022/12/North_Charcoal_Mesh_12-Right-Front-Above.jpg"};
-const shops=[{key:"jd",name:"京东",color:"red",url:(q:string)=>`https://search.jd.com/Search?keyword=${encodeURIComponent(q)}`},{key:"tb",name:"淘宝",color:"orange",url:(q:string)=>`https://s.taobao.com/search?q=${encodeURIComponent(q)}`},{key:"pdd",name:"拼多多",color:"pink",url:(q:string)=>`https://mobile.yangkeduo.com/search_result.html?search_key=${encodeURIComponent(q)}`}];
-function quote(price:number,i:number){return Math.round(price*[1.03,.98,.94][i]/10)*10}
-function ShopLinks({part,compact=false}:{part:Part;compact?:boolean}){return <div className={compact?"shop-links compact":"shop-links"}>{shops.map((s,i)=><a className={s.color} key={s.key} href={s.url(part.name)} target="_blank" rel="noreferrer"><span>{s.name}</span><b>¥{quote(part.price,i).toLocaleString()}</b><i>↗</i></a>)}</div>}
-const plans=[{name:"入门网游主机",price:"2999",scene:"LOL · CF · DNF",tone:"mint",spec:"6 核处理器 · 16GB · 1TB SSD"},{name:"主流游戏主机",price:"3999",scene:"1080P 高画质",tone:"violet",spec:"主流独显 · 16GB DDR5 · 1TB"},{name:"高帧电竞主机",price:"4999",scene:"无畏契约 · 永劫无间",tone:"blue",spec:"高帧独显 · 32GB · 金牌电源"},{name:"剪辑游戏主机",price:"6999",scene:"PR 剪辑 · 2K 游戏",tone:"amber",spec:"8 核 CPU · 12GB 显存 · 2TB"}];
-function ServiceMenu({onSelect}:{onSelect:(name:string)=>void}){return <details className="service-menu"><summary>整机方案</summary><div className="service-mega"><div className="mega-head"><span><p>READY-TO-BUILD</p><h2>标准整机方案</h2><small>配置透明、测试留档、售后可追溯</small></span><div><b>1 年</b>店铺质保 · <b>7 项</b>交付检测</div></div><div className="mini-plans">{plans.map(p=><article className={p.tone} key={p.name}><small>{p.scene}</small><h3>{p.name}</h3><p>{p.spec}</p><div><b>¥{p.price}</b><button onClick={()=>onSelect(p.name)}>开始定制 →</button></div></article>)}</div><div className="proof-row"><section><b>发货前检测档案</b><span>配置清单 · SN 码照片 · AIDA64 · FurMark · 温度与硬盘健康</span></section><section><b>包装与运输</b><span>双层纸箱 · 内部填充气囊 · 重型显卡单独加固 · 打包前照片</span></section><section><b>售后边界透明</b><span>整机店保 1 年 · 配件官方质保 · 质量问题运费卖家承担</span></section></div></div></details>}
-function diagnose(build:Build){const missing=types.filter(t=>!build[t]),errors:string[]=[],warnings:string[]=[];const cpu=build.CPU,mb=build.主板,ram=build.内存,gpu=build.显卡,psu=build.电源,box=build.机箱,cooler=build.散热器;if(cpu&&mb&&cpu.socket!==mb.socket)errors.push(`CPU 为 ${cpu.socket}，主板接口是 ${mb.socket}`);if(ram&&mb&&ram.ram!==mb.ram)errors.push(`${ram.ram} 内存无法安装到 ${mb.ram} 主板`);if(gpu&&box&&gpu.length!>box.gpuMax!)errors.push(`显卡长 ${gpu.length}mm，超过机箱限长 ${box.gpuMax}mm`);if(cooler&&box&&cooler.height!>box.coolerMax!)errors.push(`散热器高 ${cooler.height}mm，超过机箱限高 ${box.coolerMax}mm`);const demand=120+(cpu?.tdp||0)+(gpu?.tdp||0);if(psu&&psu.watt!<demand*1.35)errors.push(`建议至少 ${Math.ceil(demand*1.35/50)*50}W 电源，当前仅 ${psu.watt}W`);else if(psu&&psu.watt!<demand*1.55)warnings.push("电源可用，但未来升级余量偏少");if(mb?.socket==="LGA1700")warnings.push("LGA1700 后续升级空间有限，换代可能需更换主板");if(!errors.length&&!missing.length)warnings.push("核心兼容性通过，建议下单前复核机箱水冷位与显卡厚度");return{missing,errors,warnings,demand}}
-export default function Home(){const [tab,setTab]=useState<"build"|"forum">("build"),[build,setBuild]=useState<Build>(preset),[picker,setPicker]=useState<string|null>(null),[toast,setToast]=useState(""),[composer,setComposer]=useState(false),[title,setTitle]=useState(""),[note,setNote]=useState(""),[photo,setPhoto]=useState(""),[posts,setPosts]=useState<Post[]>(samples),[liked,setLiked]=useState<number[]>([]);useEffect(()=>{try{const s=localStorage.getItem("xingtu-build");if(s)setBuild(JSON.parse(s))}catch{}},[]);useEffect(()=>{localStorage.setItem("xingtu-build",JSON.stringify(build))},[build]);const check=useMemo(()=>diagnose(build),[build]),total=Object.values(build).reduce((s,p)=>s+(p?.price||0),0),complete=types.length-check.missing.length;
-const choose=(p:Part)=>{setBuild(b=>({...b,[p.type]:p}));setPicker(null);setToast(`${p.name} 已加入配置单`)};const upload=(e:ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;if(f.size>4*1024*1024){setToast("图片请控制在 4MB 以内");return}const r=new FileReader();r.onload=()=>setPhoto(String(r.result));r.readAsDataURL(f)};const publish=()=>{if(!title.trim()){setToast("先给帖子起个标题");return}setPosts(p=>[{id:Date.now(),title,author:"我",note:note||"分享我的新配置，欢迎大家来点评。",image:photo||"/community-builds.png",likes:0,tags:["新配置","求点评"],cost:total},...p]);setTitle("");setNote("");setPhoto("");setComposer(false);setTab("forum");setToast("已发布到装机广场")};
-return <main><header><div className="brand"><span>▣</span><b>装机星图</b><i>Beta</i></div><nav><button className={tab==="build"?"active":""} onClick={()=>setTab("build")}>配置工作台</button><ServiceMenu onSelect={name=>{setTab("build");setToast(`${name}预算已启用，请按需求继续选件`)}}/><button className={tab==="forum"?"active":""} onClick={()=>setTab("forum")}>装机广场</button></nav><div className="head-actions"><button onClick={()=>{setBuild(Object.fromEntries(types.map(t=>[t,null])));setTab("build")}}>＋ 从零组装</button><button className="primary" onClick={()=>setComposer(true)}>发布配置</button></div></header>
-{tab==="build"?<div className="build-page"><section className="builder"><div className="section-title"><span><p>MY BUILD / 当前配置</p><h1>自由组建配置单</h1><small className="price-note">参考价已更新 · 点击平台按钮查看实时成交价</small></span><div className="budget"><small>配置参考总价</small><b>¥{total.toLocaleString()}</b></div></div><div className="progress"><span style={{width:`${complete/types.length*100}%`}}/></div><div className="part-grid">{types.map(t=>{const p=build[t];return <article className={p?"part-card selected":"part-card"} key={t}><div className="part-thumb">{p?<img src={productImages[t]} alt={p.name}/>:<span>＋</span>}</div><div className="part-main"><small>{t}</small>{p?<><h3>{p.name}</h3><p>{p.meta}</p><b>参考 ¥{p.price.toLocaleString()}</b></>:<><h3>还未选择</h3><p>选择合适的{t}，系统会自动检查兼容性</p></>}</div><div className="part-actions"><button className="select-btn" onClick={()=>setPicker(t)}>{p?"更换":"＋ 添加"}</button>{p&&<button className="remove" aria-label={`移除${t}`} onClick={()=>setBuild(b=>({...b,[t]:null}))}>×</button>}</div>{p&&<ShopLinks part={p} compact/>}</article>})}</div></section><aside className="diagnosis"><div className="diag-head"><span><p>BUILD DOCTOR</p><h2>装机诊断</h2></span><b className={check.errors.length?"bad":check.missing.length?"wait":"pass"}>{check.errors.length?"发现冲突":check.missing.length?"配置未完成":"兼容通过"}</b></div><div className="ring" style={{"--score":`${Math.max(8,(complete-check.errors.length)*100/types.length)}%`} as React.CSSProperties}><div><strong>{Math.round(complete*100/types.length)}</strong><small>% 完整</small></div></div>{check.missing.length>0&&<section className="diag-block missing"><h3>还差 {check.missing.length} 项</h3>{check.missing.map(t=><button key={t} onClick={()=>setPicker(t)}><span>＋</span>{t}<b>去选择 →</b></button>)}</section>}{check.errors.length>0&&<section className="diag-block errors"><h3>不兼容 · 必须处理</h3>{check.errors.map(x=><p key={x}><b>!</b><span>{x}</span></p>)}</section>}<section className="diag-block notes"><h3>{check.errors.length?"升级建议":"检查结果"}</h3>{check.warnings.map(x=><p key={x}><b>{check.errors.length?"↗":"✓"}</b><span>{x}</span></p>)}</section><div className="power"><span><small>估算整机峰值</small><strong>{check.demand}W</strong></span><span><small>推荐电源</small><strong>{Math.ceil(check.demand*1.45/50)*50}W+</strong></span></div><button className="share-build" onClick={()=>setComposer(true)}>带上这套配置去分享 <b>→</b></button></aside></div>:<div className="forum-page"><div className="forum-hero"><span><p>COMMUNITY BUILDS</p><h1>装机广场</h1><h2>看看大家怎么装，也晒出你的作品。</h2></span><button onClick={()=>setComposer(true)}>＋ 发布配置与装机图</button></div><div className="forum-tabs"><button className="active">最新发布</button><button>本周热门</button><button>配置求助</button><span>{posts.length} 个装机作品</span></div><div className="post-grid">{posts.map((p,i)=><article className="post" key={p.id}><div className={`photo crop${i%3}`} style={{backgroundImage:`url(${p.image})`}}><span>¥{p.cost.toLocaleString()}</span></div><div className="post-body"><div className="author"><i>{p.author.slice(0,1)}</i><span><b>{p.author}</b><small>{p.id>1000?"刚刚发布":"2 小时前"}</small></span></div><h3>{p.title}</h3><p>{p.note}</p><div className="tags">{p.tags.map(t=><span key={t}>#{t}</span>)}</div><div className="post-actions"><button onClick={()=>setLiked(l=>l.includes(p.id)?l.filter(x=>x!==p.id):[...l,p.id])} className={liked.includes(p.id)?"liked":""}>♡ {p.likes+(liked.includes(p.id)?1:0)}</button><button>◌ {12+i*7}</button><button onClick={()=>setToast("配置单已复制到你的工作台")}>复制配置</button></div></div></article>)}</div></div>}
-{picker&&<div className="modal-back" onMouseDown={()=>setPicker(null)}><section className="picker" onMouseDown={e=>e.stopPropagation()}><div className="modal-title"><span><p>SELECT COMPONENT</p><h2>选择{picker}</h2><small className="price-note">平台价格仅作近期参考，跳转后以商品页为准</small></span><button onClick={()=>setPicker(null)}>×</button></div><div className="choices">{catalog[picker].map(p=>{const trial=diagnose({...build,[picker]:p}),bad=trial.errors.length>check.errors.length;return <div className={build[picker]?.id===p.id?"choice current":"choice"} key={p.id}><img className="choice-photo" src={productImages[picker]} alt={p.name}/><button className="choice-info" onClick={()=>choose(p)}><small>{bad?"⚠ 可能不兼容":build[picker]?.id===p.id?"当前选择":"可选"}</small><strong>{p.name}</strong><p>{p.meta}</p><b>参考 ¥{p.price.toLocaleString()}</b></button><ShopLinks part={p}/></div>})}</div></section></div>}
-{composer&&<div className="modal-back" onMouseDown={()=>setComposer(false)}><section className="composer" onMouseDown={e=>e.stopPropagation()}><div className="modal-title"><span><p>SHARE YOUR BUILD</p><h2>发布配置与装机图</h2></span><button onClick={()=>setComposer(false)}>×</button></div><label>帖子标题<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="例如：我的第一台纯白海景房"/></label><label>装机心得<textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="说说性能、噪音、装机过程或想让大家点评的地方…"/></label><div className="upload" style={photo?{backgroundImage:`url(${photo})`}:undefined}><input type="file" accept="image/*" onChange={upload}/>{photo?<span>点击更换装机图</span>:<span><b>＋</b> 上传装机图<small>JPG / PNG，最大 4MB</small></span>}</div><div className="build-chip"><span><small>随帖配置</small><b>{complete}/8 个部件 · ¥{total.toLocaleString()}</b></span><button onClick={()=>{setComposer(false);setTab("build")}}>返回修改</button></div><button className="publish" onClick={publish}>发布到装机广场</button></section></div>}{toast&&<output>{toast}<button onClick={()=>setToast("")}>×</button></output>}</main>}
+type Part = {
+  id: string;
+  type: string;
+  name: string;
+  price: number;
+  meta: string;
+  socket?: string;
+  ram?: string;
+  tdp?: number;
+  watt?: number;
+  length?: number;
+  height?: number;
+  gpuMax?: number;
+  coolerMax?: number;
+};
+type Build = Record<string, Part | null>;
+type Post = {
+  id: number;
+  title: string;
+  author: string;
+  note: string;
+  image: string;
+  likes: number;
+  tags: string[];
+  cost: number;
+};
+const types = ["CPU", "主板", "显卡", "内存", "硬盘", "散热器", "电源", "机箱"];
+const catalog: Record<string, Part[]> = {
+  CPU: [
+    {
+      id: "c1",
+      type: "CPU",
+      name: "Ryzen 5 7600X",
+      price: 1399,
+      meta: "6 核 12 线程 · AM5",
+      socket: "AM5",
+      tdp: 105,
+    },
+    {
+      id: "c2",
+      type: "CPU",
+      name: "Ryzen 7 9700X",
+      price: 2399,
+      meta: "8 核 16 线程 · AM5",
+      socket: "AM5",
+      tdp: 120,
+    },
+    {
+      id: "c3",
+      type: "CPU",
+      name: "Core i5-14600KF",
+      price: 1799,
+      meta: "14 核 20 线程 · LGA1700",
+      socket: "LGA1700",
+      tdp: 181,
+    },
+  ],
+  主板: [
+    {
+      id: "m1",
+      type: "主板",
+      name: "B650M MORTAR WIFI",
+      price: 1299,
+      meta: "AM5 · DDR5 · M-ATX",
+      socket: "AM5",
+      ram: "DDR5",
+    },
+    {
+      id: "m2",
+      type: "主板",
+      name: "B760M AORUS ELITE",
+      price: 1099,
+      meta: "LGA1700 · DDR5 · M-ATX",
+      socket: "LGA1700",
+      ram: "DDR5",
+    },
+    {
+      id: "m3",
+      type: "主板",
+      name: "B550M MORTAR",
+      price: 799,
+      meta: "AM4 · DDR4 · M-ATX",
+      socket: "AM4",
+      ram: "DDR4",
+    },
+  ],
+  显卡: [
+    {
+      id: "g1",
+      type: "显卡",
+      name: "RTX 4070 SUPER 12G",
+      price: 4599,
+      meta: "330 mm · 峰值 285W",
+      tdp: 285,
+      length: 330,
+    },
+    {
+      id: "g2",
+      type: "显卡",
+      name: "RX 7800 XT 16G",
+      price: 3899,
+      meta: "320 mm · 峰值 300W",
+      tdp: 300,
+      length: 320,
+    },
+    {
+      id: "g3",
+      type: "显卡",
+      name: "RTX 4060 Ti 16G",
+      price: 3299,
+      meta: "250 mm · 峰值 190W",
+      tdp: 190,
+      length: 250,
+    },
+  ],
+  内存: [
+    {
+      id: "r1",
+      type: "内存",
+      name: "Kingston FURY DDR5 6000 32GB",
+      price: 699,
+      meta: "CL30 · 双通道 · AMD EXPO",
+      ram: "DDR5",
+    },
+    {
+      id: "r2",
+      type: "内存",
+      name: "芝奇 幻锋戟 DDR5 7200 32GB",
+      price: 899,
+      meta: "CL34 · 双通道 · XMP",
+      ram: "DDR5",
+    },
+    {
+      id: "r3",
+      type: "内存",
+      name: "金百达 DDR4 3600 32GB",
+      price: 449,
+      meta: "CL18 · 双通道",
+      ram: "DDR4",
+    },
+  ],
+  硬盘: [
+    {
+      id: "s1",
+      type: "硬盘",
+      name: "Samsung 990 PRO 2TB",
+      price: 1099,
+      meta: "PCIe 4.0 · 读速 7450MB/s",
+    },
+    {
+      id: "s2",
+      type: "硬盘",
+      name: "致态 TiPlus 7100 1TB",
+      price: 449,
+      meta: "PCIe 4.0 · 读速 7000MB/s",
+    },
+  ],
+  散热器: [
+    {
+      id: "f1",
+      type: "散热器",
+      name: "Thermalright PA120 SE",
+      price: 219,
+      meta: "双塔风冷 · 高 155mm",
+      height: 155,
+    },
+    {
+      id: "f2",
+      type: "散热器",
+      name: "瓦尔基里 A360 ARGB",
+      price: 699,
+      meta: "360 冷排 · 高性能",
+      height: 60,
+    },
+    {
+      id: "f3",
+      type: "散热器",
+      name: "Noctua NH-D15S",
+      price: 699,
+      meta: "双塔风冷 · 高 160mm",
+      height: 160,
+    },
+  ],
+  电源: [
+    {
+      id: "p1",
+      type: "电源",
+      name: "Corsair RM750e 750W",
+      price: 699,
+      meta: "金牌全模组 · ATX 3.0",
+      watt: 750,
+    },
+    {
+      id: "p2",
+      type: "电源",
+      name: "航嘉 WD650K 650W",
+      price: 399,
+      meta: "金牌 · ATX 2.4",
+      watt: 650,
+    },
+    {
+      id: "p3",
+      type: "电源",
+      name: "海韵 FOCUS GX850",
+      price: 899,
+      meta: "金牌全模组 · 十年质保",
+      watt: 850,
+    },
+  ],
+  机箱: [
+    {
+      id: "b1",
+      type: "机箱",
+      name: "乔思伯 TK-2 纯白",
+      price: 599,
+      meta: "海景房 · 显卡 340mm · 风冷 160mm",
+      gpuMax: 340,
+      coolerMax: 160,
+    },
+    {
+      id: "b2",
+      type: "机箱",
+      name: "闪鳞 S400 ITX",
+      price: 699,
+      meta: "紧凑便携 · 显卡 305mm",
+      gpuMax: 305,
+      coolerMax: 135,
+    },
+    {
+      id: "b3",
+      type: "机箱",
+      name: "Fractal Design North",
+      price: 999,
+      meta: "胡桃木前脸 · 显卡 355mm",
+      gpuMax: 355,
+      coolerMax: 170,
+    },
+  ],
+};
+const preset: Build = {
+  CPU: catalog.CPU[0],
+  主板: catalog.主板[0],
+  显卡: catalog.显卡[0],
+  内存: catalog.内存[0],
+  硬盘: catalog.硬盘[0],
+  散热器: catalog.散热器[0],
+  电源: catalog.电源[0],
+  机箱: catalog.机箱[0],
+};
+const samples: Post[] = [
+  {
+    id: 1,
+    title: "白色海景房一次点亮",
+    author: "光追小队长",
+    note: "第一次装机，理线比想象中更解压。2K 光追很稳，温度也漂亮。",
+    image: "/community-builds.png",
+    likes: 128,
+    tags: ["纯白", "海景房", "2K游戏"],
+    cost: 9399,
+  },
+  {
+    id: 2,
+    title: "12L 小钢炮工作台",
+    author: "像素旅人",
+    note: "塞进背包也能带走的生产力主机，风道调了三次终于满意。",
+    image: "/community-builds.png",
+    likes: 86,
+    tags: ["ITX", "静音", "生产力"],
+    cost: 7899,
+  },
+  {
+    id: 3,
+    title: "银色无光工作站",
+    author: "北桥",
+    note: "不追 RGB，只看稳定与扩展。剪辑和本地模型都够用。",
+    image: "/community-builds.png",
+    likes: 64,
+    tags: ["工作站", "无光", "高扩展"],
+    cost: 12680,
+  },
+];
+const productImages: Record<string, string> = {
+  CPU: "https://images.tcdn.com.br/img/img_prod/833676/processador_am5_ryzen_5_7600x_oem_6603_5_c1aa12fde79dbaab3b928fb59d0b2dcf.jpg",
+  主板: "https://media.ldlc.com/r1600/ld/products/00/05/98/49/LD0005984921.jpg",
+  显卡: "/community-builds.png",
+  内存: "https://pcbuild.bg/assets/products/000/000/320/000000320296--pamet-kingston-fury-beast-black-32gb-ddr5-6400mhz-cl32-xmp-kf564c32bb-32.jpg",
+  硬盘: "https://product.hstatic.net/200000420363/product/samsung-990-pro-nvme-m.2-2tb-_mz-v9p2t0bw_-7_b4eb649f3dae4b3e9419e51f02d934dd_grande.png",
+  散热器:
+    "https://m.media-amazon.com/images/S/aplus-media-library-service-media/c4208f4a-8094-49c4-bd7b-8238816eaade.__CR0%2C0%2C970%2C600_PT0_SX970_V1___.jpg",
+  电源: "https://swapnainfotech.com/cdn/shop/files/CP-9020262-IN-removebg-preview.png?v=1734967422",
+  机箱: "https://www.fractal-design.com/app/uploads/2022/12/North_Charcoal_Mesh_12-Right-Front-Above.jpg",
+};
+const shops = [
+  {
+    key: "jd",
+    name: "京东",
+    color: "red",
+    url: (q: string) =>
+      `https://search.jd.com/Search?keyword=${encodeURIComponent(q)}`,
+  },
+  {
+    key: "tb",
+    name: "淘宝",
+    color: "orange",
+    url: (q: string) =>
+      `https://s.taobao.com/search?q=${encodeURIComponent(q)}`,
+  },
+  {
+    key: "pdd",
+    name: "拼多多",
+    color: "pink",
+    url: (q: string) =>
+      `https://mobile.yangkeduo.com/search_result.html?search_key=${encodeURIComponent(q)}`,
+  },
+];
+function quote(price: number, i: number) {
+  return Math.round((price * [1.03, 0.98, 0.94][i]) / 10) * 10;
+}
+function ShopLinks({
+  part,
+  compact = false,
+}: {
+  part: Part;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "shop-links compact" : "shop-links"}>
+      {shops.map((s, i) => (
+        <a
+          className={s.color}
+          key={s.key}
+          href={s.url(part.name)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span>{s.name}</span>
+          <b>¥{quote(part.price, i).toLocaleString()}</b>
+          <i>↗</i>
+        </a>
+      ))}
+    </div>
+  );
+}
+const plans = [
+  {
+    name: "入门网游主机",
+    price: "2999",
+    scene: "LOL · CF · DNF",
+    tone: "mint",
+    spec: "6 核处理器 · 16GB · 1TB SSD",
+  },
+  {
+    name: "主流游戏主机",
+    price: "3999",
+    scene: "1080P 高画质",
+    tone: "violet",
+    spec: "主流独显 · 16GB DDR5 · 1TB",
+  },
+  {
+    name: "高帧电竞主机",
+    price: "4999",
+    scene: "无畏契约 · 永劫无间",
+    tone: "blue",
+    spec: "高帧独显 · 32GB · 金牌电源",
+  },
+  {
+    name: "剪辑游戏主机",
+    price: "6999",
+    scene: "PR 剪辑 · 2K 游戏",
+    tone: "amber",
+    spec: "8 核 CPU · 12GB 显存 · 2TB",
+  },
+];
+function ServiceMenu({ onSelect }: { onSelect: (name: string) => void }) {
+  return (
+    <details className="service-menu">
+      <summary>整机方案</summary>
+      <div className="service-mega">
+        <div className="mega-head">
+          <span>
+            <p>READY-TO-BUILD</p>
+            <h2>标准整机方案</h2>
+            <small>配置透明、测试留档、售后可追溯</small>
+          </span>
+          <div>
+            <b>1 年</b>店铺质保 · <b>7 项</b>交付检测
+          </div>
+        </div>
+        <div className="mini-plans">
+          {plans.map((p) => (
+            <article className={p.tone} key={p.name}>
+              <small>{p.scene}</small>
+              <h3>{p.name}</h3>
+              <p>{p.spec}</p>
+              <div>
+                <b>¥{p.price}</b>
+                <button onClick={() => onSelect(p.name)}>开始定制 →</button>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="proof-row">
+          <section>
+            <b>发货前检测档案</b>
+            <span>
+              配置清单 · SN 码照片 · AIDA64 · FurMark · 温度与硬盘健康
+            </span>
+          </section>
+          <section>
+            <b>包装与运输</b>
+            <span>双层纸箱 · 内部填充气囊 · 重型显卡单独加固 · 打包前照片</span>
+          </section>
+          <section>
+            <b>售后边界透明</b>
+            <span>整机店保 1 年 · 配件官方质保 · 质量问题运费卖家承担</span>
+          </section>
+        </div>
+      </div>
+    </details>
+  );
+}
+function diagnose(build: Build) {
+  const missing = types.filter((t) => !build[t]),
+    errors: string[] = [],
+    warnings: string[] = [];
+  const cpu = build.CPU,
+    mb = build.主板,
+    ram = build.内存,
+    gpu = build.显卡,
+    psu = build.电源,
+    box = build.机箱,
+    cooler = build.散热器;
+  if (cpu && mb && cpu.socket !== mb.socket)
+    errors.push(`CPU 为 ${cpu.socket}，主板接口是 ${mb.socket}`);
+  if (ram && mb && ram.ram !== mb.ram)
+    errors.push(`${ram.ram} 内存无法安装到 ${mb.ram} 主板`);
+  if (gpu && box && gpu.length! > box.gpuMax!)
+    errors.push(`显卡长 ${gpu.length}mm，超过机箱限长 ${box.gpuMax}mm`);
+  if (cooler && box && cooler.height! > box.coolerMax!)
+    errors.push(`散热器高 ${cooler.height}mm，超过机箱限高 ${box.coolerMax}mm`);
+  const demand = 120 + (cpu?.tdp || 0) + (gpu?.tdp || 0);
+  if (psu && psu.watt! < demand * 1.35)
+    errors.push(
+      `建议至少 ${Math.ceil((demand * 1.35) / 50) * 50}W 电源，当前仅 ${psu.watt}W`,
+    );
+  else if (psu && psu.watt! < demand * 1.55)
+    warnings.push("电源可用，但未来升级余量偏少");
+  if (mb?.socket === "LGA1700")
+    warnings.push("LGA1700 后续升级空间有限，换代可能需更换主板");
+  if (!errors.length && !missing.length)
+    warnings.push("核心兼容性通过，建议下单前复核机箱水冷位与显卡厚度");
+  return { missing, errors, warnings, demand };
+}
+export default function Home() {
+  const [tab, setTab] = useState<"build" | "forum">("build"),
+    [build, setBuild] = useState<Build>(preset),
+    [picker, setPicker] = useState<string | null>(null),
+    [toast, setToast] = useState(""),
+    [composer, setComposer] = useState(false),
+    [title, setTitle] = useState(""),
+    [note, setNote] = useState(""),
+    [photo, setPhoto] = useState(""),
+    [posts, setPosts] = useState<Post[]>(samples),
+    [liked, setLiked] = useState<number[]>([]);
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("xingtu-build");
+      if (s) setBuild(JSON.parse(s));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("xingtu-build", JSON.stringify(build));
+  }, [build]);
+  const check = useMemo(() => diagnose(build), [build]),
+    total = Object.values(build).reduce((s, p) => s + (p?.price || 0), 0),
+    complete = types.length - check.missing.length;
+  const choose = (p: Part) => {
+    setBuild((b) => ({ ...b, [p.type]: p }));
+    setPicker(null);
+    setToast(`${p.name} 已加入配置单`);
+  };
+  const upload = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) {
+      setToast("图片请控制在 4MB 以内");
+      return;
+    }
+    const r = new FileReader();
+    r.onload = () => setPhoto(String(r.result));
+    r.readAsDataURL(f);
+  };
+  const publish = () => {
+    if (!title.trim()) {
+      setToast("先给帖子起个标题");
+      return;
+    }
+    setPosts((p) => [
+      {
+        id: Date.now(),
+        title,
+        author: "我",
+        note: note || "分享我的新配置，欢迎大家来点评。",
+        image: photo || "/community-builds.png",
+        likes: 0,
+        tags: ["新配置", "求点评"],
+        cost: total,
+      },
+      ...p,
+    ]);
+    setTitle("");
+    setNote("");
+    setPhoto("");
+    setComposer(false);
+    setTab("forum");
+    setToast("已发布到装机广场");
+  };
+  return (
+    <main>
+      <header>
+        <div className="brand">
+          <span>▣</span>
+          <b>装机星图</b>
+          <i>Beta</i>
+        </div>
+        <nav>
+          <button
+            className={tab === "build" ? "active" : ""}
+            onClick={() => setTab("build")}
+          >
+            配置工作台
+          </button>
+          <ServiceMenu
+            onSelect={(name) => {
+              setTab("build");
+              setToast(`${name}预算已启用，请按需求继续选件`);
+            }}
+          />
+          <button
+            className={tab === "forum" ? "active" : ""}
+            onClick={() => setTab("forum")}
+          >
+            装机广场
+          </button>
+        </nav>
+        <div className="head-actions">
+          <button
+            onClick={() => {
+              setBuild(Object.fromEntries(types.map((t) => [t, null])));
+              setTab("build");
+            }}
+          >
+            ＋ 从零组装
+          </button>
+          <button className="primary" onClick={() => setComposer(true)}>
+            发布配置
+          </button>
+        </div>
+      </header>
+      {tab === "build" ? (
+        <div className="build-page">
+          <section className="builder">
+            <div className="section-title">
+              <span>
+                <p>MY BUILD / 当前配置</p>
+                <h1>自由组建配置单</h1>
+                <small className="price-note">
+                  参考价已更新 · 点击平台按钮查看实时成交价
+                </small>
+              </span>
+              <div className="build-toolbar">
+                {total > 0 && (
+                  <button
+                    className="reset-build"
+                    onClick={() => {
+                      setBuild(Object.fromEntries(types.map((t) => [t, null])));
+                      setToast("配置单已重置");
+                    }}
+                  >
+                    ↺ 重置配置
+                  </button>
+                )}
+                <div className="budget">
+                  <small>配置参考总价</small>
+                  <b>¥{total.toLocaleString()}</b>
+                </div>
+              </div>
+            </div>
+            <div className="progress">
+              <span style={{ width: `${(complete / types.length) * 100}%` }} />
+            </div>
+            <div className="part-grid">
+              {types.map((t) => {
+                const p = build[t];
+                return (
+                  <article
+                    className={p ? "part-card selected" : "part-card"}
+                    key={t}
+                  >
+                    <div className="part-thumb">
+                      {p ? (
+                        <img src={productImages[t]} alt={p.name} />
+                      ) : (
+                        <span>＋</span>
+                      )}
+                    </div>
+                    <div className="part-main">
+                      <small>{t}</small>
+                      {p ? (
+                        <>
+                          <h3>{p.name}</h3>
+                          <p>{p.meta}</p>
+                          <b>参考 ¥{p.price.toLocaleString()}</b>
+                        </>
+                      ) : (
+                        <>
+                          <h3>还未选择</h3>
+                          <p>选择合适的{t}，系统会自动检查兼容性</p>
+                        </>
+                      )}
+                    </div>
+                    <div className="part-actions">
+                      <button
+                        className="select-btn"
+                        onClick={() => setPicker(t)}
+                      >
+                        {p ? "更换" : "＋ 添加"}
+                      </button>
+                      {p && (
+                        <button
+                          className="remove"
+                          aria-label={`移除${t}`}
+                          onClick={() => setBuild((b) => ({ ...b, [t]: null }))}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    {p && <ShopLinks part={p} compact />}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+          <aside className="diagnosis">
+            <div className="diag-head">
+              <span>
+                <p>BUILD DOCTOR</p>
+                <h2>装机诊断</h2>
+              </span>
+              <b
+                className={
+                  check.errors.length
+                    ? "bad"
+                    : check.missing.length
+                      ? "wait"
+                      : "pass"
+                }
+              >
+                {check.errors.length
+                  ? "发现冲突"
+                  : check.missing.length
+                    ? "配置未完成"
+                    : "兼容通过"}
+              </b>
+            </div>
+            <div
+              className="ring"
+              style={
+                {
+                  "--score": `${Math.max(8, ((complete - check.errors.length) * 100) / types.length)}%`,
+                } as React.CSSProperties
+              }
+            >
+              <div>
+                <strong>{Math.round((complete * 100) / types.length)}</strong>
+                <small>% 完整</small>
+              </div>
+            </div>
+            {check.missing.length > 0 && (
+              <section className="diag-block missing">
+                <h3>还差 {check.missing.length} 项</h3>
+                {check.missing.map((t) => (
+                  <button key={t} onClick={() => setPicker(t)}>
+                    <span>＋</span>
+                    {t}
+                    <b>去选择 →</b>
+                  </button>
+                ))}
+              </section>
+            )}
+            {check.errors.length > 0 && (
+              <section className="diag-block errors">
+                <h3>不兼容 · 必须处理</h3>
+                {check.errors.map((x) => (
+                  <p key={x}>
+                    <b>!</b>
+                    <span>{x}</span>
+                  </p>
+                ))}
+              </section>
+            )}
+            <section className="diag-block notes">
+              <h3>{check.errors.length ? "升级建议" : "检查结果"}</h3>
+              {check.warnings.map((x) => (
+                <p key={x}>
+                  <b>{check.errors.length ? "↗" : "✓"}</b>
+                  <span>{x}</span>
+                </p>
+              ))}
+            </section>
+            <div className="power">
+              <span>
+                <small>估算整机峰值</small>
+                <strong>{check.demand}W</strong>
+              </span>
+              <span>
+                <small>推荐电源</small>
+                <strong>{Math.ceil((check.demand * 1.45) / 50) * 50}W+</strong>
+              </span>
+            </div>
+            <button className="share-build" onClick={() => setComposer(true)}>
+              带上这套配置去分享 <b>→</b>
+            </button>
+          </aside>
+        </div>
+      ) : (
+        <div className="forum-page">
+          <div className="forum-hero">
+            <span>
+              <p>COMMUNITY BUILDS</p>
+              <h1>装机广场</h1>
+              <h2>看看大家怎么装，也晒出你的作品。</h2>
+            </span>
+            <button onClick={() => setComposer(true)}>
+              ＋ 发布配置与装机图
+            </button>
+          </div>
+          <div className="forum-tabs">
+            <button className="active">最新发布</button>
+            <button>本周热门</button>
+            <button>配置求助</button>
+            <span>{posts.length} 个装机作品</span>
+          </div>
+          <div className="post-grid">
+            {posts.map((p, i) => (
+              <article className="post" key={p.id}>
+                <div
+                  className={`photo crop${i % 3}`}
+                  style={{ backgroundImage: `url(${p.image})` }}
+                >
+                  <span>¥{p.cost.toLocaleString()}</span>
+                </div>
+                <div className="post-body">
+                  <div className="author">
+                    <i>{p.author.slice(0, 1)}</i>
+                    <span>
+                      <b>{p.author}</b>
+                      <small>{p.id > 1000 ? "刚刚发布" : "2 小时前"}</small>
+                    </span>
+                  </div>
+                  <h3>{p.title}</h3>
+                  <p>{p.note}</p>
+                  <div className="tags">
+                    {p.tags.map((t) => (
+                      <span key={t}>#{t}</span>
+                    ))}
+                  </div>
+                  <div className="post-actions">
+                    <button
+                      onClick={() =>
+                        setLiked((l) =>
+                          l.includes(p.id)
+                            ? l.filter((x) => x !== p.id)
+                            : [...l, p.id],
+                        )
+                      }
+                      className={liked.includes(p.id) ? "liked" : ""}
+                    >
+                      ♡ {p.likes + (liked.includes(p.id) ? 1 : 0)}
+                    </button>
+                    <button>◌ {12 + i * 7}</button>
+                    <button
+                      onClick={() => setToast("配置单已复制到你的工作台")}
+                    >
+                      复制配置
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+      {picker && (
+        <div className="modal-back" onMouseDown={() => setPicker(null)}>
+          <section className="picker" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal-title">
+              <span>
+                <p>SELECT COMPONENT</p>
+                <h2>选择{picker}</h2>
+                <small className="price-note">
+                  平台价格仅作近期参考，跳转后以商品页为准
+                </small>
+              </span>
+              <button onClick={() => setPicker(null)}>×</button>
+            </div>
+            <div className="choices">
+              {catalog[picker].map((p) => {
+                const trial = diagnose({ ...build, [picker]: p }),
+                  bad = trial.errors.length > check.errors.length;
+                return (
+                  <div
+                    className={
+                      build[picker]?.id === p.id ? "choice current" : "choice"
+                    }
+                    key={p.id}
+                  >
+                    <img
+                      className="choice-photo"
+                      src={productImages[picker]}
+                      alt={p.name}
+                    />
+                    <button className="choice-info" onClick={() => choose(p)}>
+                      <small>
+                        {bad
+                          ? "⚠ 可能不兼容"
+                          : build[picker]?.id === p.id
+                            ? "当前选择"
+                            : "可选"}
+                      </small>
+                      <strong>{p.name}</strong>
+                      <p>{p.meta}</p>
+                      <b>参考 ¥{p.price.toLocaleString()}</b>
+                    </button>
+                    <ShopLinks part={p} />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      )}
+      {composer && (
+        <div className="modal-back" onMouseDown={() => setComposer(false)}>
+          <section
+            className="composer"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="modal-title">
+              <span>
+                <p>SHARE YOUR BUILD</p>
+                <h2>发布配置与装机图</h2>
+              </span>
+              <button onClick={() => setComposer(false)}>×</button>
+            </div>
+            <label>
+              帖子标题
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="例如：我的第一台纯白海景房"
+              />
+            </label>
+            <label>
+              装机心得
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="说说性能、噪音、装机过程或想让大家点评的地方…"
+              />
+            </label>
+            <div
+              className="upload"
+              style={photo ? { backgroundImage: `url(${photo})` } : undefined}
+            >
+              <input type="file" accept="image/*" onChange={upload} />
+              {photo ? (
+                <span>点击更换装机图</span>
+              ) : (
+                <span>
+                  <b>＋</b> 上传装机图<small>JPG / PNG，最大 4MB</small>
+                </span>
+              )}
+            </div>
+            <div className="build-chip">
+              <span>
+                <small>随帖配置</small>
+                <b>
+                  {complete}/8 个部件 · ¥{total.toLocaleString()}
+                </b>
+              </span>
+              <button
+                onClick={() => {
+                  setComposer(false);
+                  setTab("build");
+                }}
+              >
+                返回修改
+              </button>
+            </div>
+            <button className="publish" onClick={publish}>
+              发布到装机广场
+            </button>
+          </section>
+        </div>
+      )}
+      {toast && (
+        <output>
+          {toast}
+          <button onClick={() => setToast("")}>×</button>
+        </output>
+      )}
+    </main>
+  );
+}
